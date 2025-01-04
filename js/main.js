@@ -790,6 +790,115 @@ async function cleanupProjectDirectory(className) {
         console.error("Error during project directory cleanup:", error);
     }
 }
+
+//Find blocks
+document.addEventListener('keydown', function (event) {
+    if (event.ctrlKey && event.key === 'f') {
+        event.preventDefault();
+        openSearchWorkspaceModal();
+    }
+});
+
+function openSearchWorkspaceModal() {
+    const existingModal = document.getElementById('workspaceSearchModal');
+    if (existingModal) {
+        existingModal.remove(); // Remove if already exists
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'workspaceSearchModal';
+    modal.style.position = 'fixed';
+    modal.style.top = '20px';
+    modal.style.left = '50%';
+    modal.style.transform = 'translateX(-50%)';
+    modal.style.backgroundColor = '#fff';
+    modal.style.border = '1px solid #ccc';
+    modal.style.padding = '10px';
+    modal.style.zIndex = 1000;
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search blocks in workspace...';
+    input.style.marginRight = '10px';
+    input.style.padding = '5px';
+    input.style.flexGrow = '1';
+
+    const searchButton = document.createElement('button');
+    searchButton.textContent = 'Search';
+    searchButton.style.padding = '5px 10px';
+    searchButton.addEventListener('click', () => {
+        const query = input.value.toLowerCase();
+        resetHighlightedBlocks(); // Reset any previously highlighted blocks
+        highlightMatchingBlocks(query);
+    });
+
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.style.padding = '5px 10px';
+    closeButton.addEventListener('click', () => modal.remove());
+
+    modal.appendChild(input);
+    modal.appendChild(searchButton);
+    modal.appendChild(closeButton);
+    document.body.appendChild(modal);
+    input.focus();
+}
+
+function highlightMatchingBlocks(query) {
+    const workspace = Blockly.getMainWorkspace();
+    if (!workspace) return;
+
+    const allBlocks = workspace.getAllBlocks();
+    let foundBlocks = false;
+
+    allBlocks.forEach(block => {
+        const blockText = `${block.type} ${block.toString()}`.toLowerCase();
+        if (blockText.includes(query)) {
+            foundBlocks = true;
+            if (!block.originalColour) {
+                block.originalColour = block.getColour(); // Save the original color
+            }
+            block.setColour('#FFD700'); // Highlight color (gold)
+
+            // Add click listener to reset color on click
+            block.clickHandler = function () {
+                block.setColour(block.originalColour);
+                block.originalColour = null;
+                block.clickHandler = null; // Remove listener
+            };
+            block.getSvgRoot().addEventListener('click', block.clickHandler);
+        }
+    });
+
+    if (!foundBlocks) {
+        alert('No matching blocks found.');
+    }
+}
+
+function resetHighlightedBlocks() {
+    const workspace = Blockly.getMainWorkspace();
+    if (!workspace) return;
+
+    const allBlocks = workspace.getAllBlocks();
+    allBlocks.forEach(block => {
+        if (block.originalColour) {
+            block.setColour(block.originalColour);
+            block.originalColour = null;
+
+            // Remove any attached click listener
+            if (block.clickHandler) {
+                block.getSvgRoot().removeEventListener('click', block.clickHandler);
+                block.clickHandler = null;
+            }
+        }
+    });
+}
+
+//End find blockly
+
+
     // Manifest XML Editor
     const defaultCode = `
 <?xml version="1.0" encoding="utf-8"?>

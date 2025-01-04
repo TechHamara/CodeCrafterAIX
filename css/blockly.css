@@ -158,59 +158,67 @@ body {
 
 /* Previne problemas de redimensionamento em tela cheia */
 
-    /* Prevent resizing issues in fullscreen */
-    :-webkit-full-screen [id^="blocklyDivHelper"],
-    :-webkit-full-screen #blocklyDiv,
-    :-moz-full-screen [id^="blocklyDivHelper"],
-    :-moz-full-screen #blocklyDiv,
-    :fullscreen [id^="blocklyDivHelper"],
-    :fullscreen #blocklyDiv {
-        height: calc(100vh - 120px) !important;
+/* Prevent resizing issues in fullscreen */
+:-webkit-full-screen [id^="blocklyDivHelper"],
+:-webkit-full-screen #blocklyDiv,
+:-moz-full-screen [id^="blocklyDivHelper"],
+:-moz-full-screen #blocklyDiv,
+:fullscreen [id^="blocklyDivHelper"],
+:fullscreen #blocklyDiv {
+    height: calc(100vh - 120px) !important;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    #blocklyDiv, [id^="blocklyDivHelper"] {
+        height: calc(100vh - 80px) !important; /* Reduced for mobile */
+        min-height: 200px !important;
     }
-    
-    /* Mobile Responsiveness */
-    @media (max-width: 768px) {
-        #blocklyDiv, [id^="blocklyDivHelper"] {
-            height: calc(100vh - 80px) !important; /* Reduced for mobile */
-            min-height: 200px !important;
-        }
-    
-        .tab-button {
-            padding: 8px 15px; /* Smaller button padding */
-            font-size: 14px;
-        }
-    
-        .tab-content textarea, 
-        .tab-content pre {
-            font-size: 12px; /* Smaller font size for mobile */
-        }
+
+    .tab-button {
+        padding: 8px 15px; /* Smaller button padding */
+        font-size: 14px;
     }
-    
-    /* Extra small devices */
-    @media (max-width: 480px) {
-        #blocklyDiv, [id^="blocklyDivHelper"] {
-            height: calc(100vh - 60px) !important; /* Further reduced height */
-            min-height: 150px !important;
-        }
-    
-        .tab-button {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-    
-        .tab-content {
-            padding: 5px; /* Reduced padding */
-        }
-    
-        .tab-content textarea, 
-        .tab-content pre {
-            font-size: 10px; /* Even smaller font size */
-        }
+
+    .tab-content textarea, 
+    .tab-content pre {
+        font-size: 12px; /* Smaller font size for mobile */
     }
-    
-    /* Orientation-specific adjustments */
-    @media (orientation: landscape) {
-        #blocklyDiv, [id^="blocklyDivHelper"] {
-            height: calc(100vh - 60px) !important;
-        }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    #blocklyDiv, [id^="blocklyDivHelper"] {
+        height: calc(100vh - 60px) !important; /* Further reduced height */
+        min-height: 150px !important;
     }
+
+    .tab-button {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .tab-content {
+        padding: 5px; /* Reduced padding */
+    }
+
+    .tab-content textarea, 
+    .tab-content pre {
+        font-size: 10px; /* Even smaller font size */
+    }
+}
+
+/* Orientation-specific adjustments */
+@media (orientation: landscape) {
+    #blocklyDiv, [id^="blocklyDivHelper"] {
+        height: calc(100vh - 60px) !important;
+    }
+}
+
+
+#searchModal input {
+    width: 300px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+}
+
