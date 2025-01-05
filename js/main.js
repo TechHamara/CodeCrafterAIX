@@ -613,33 +613,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-function showTab(tabId) {
-    const tabs = document.querySelectorAll('.tab-content');
-    const buttons = document.querySelectorAll('.tab-button');
-
-    // Remove a classe 'active' de todas as abas e botões
-    tabs.forEach(tab => tab.classList.remove('active'));
-    buttons.forEach(button => button.classList.remove('active'));
-
-    // Ativa a aba correspondente
-    const activeTab = document.getElementById(tabId);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    } else {
-        console.error(`Tab with ID ${tabId} not found.`);
-    }
-
-    // Ativa o botão correspondente
-    const activeButton = Array.from(buttons).find(button => button.getAttribute("onclick") === `showTab('${tabId}')`);
-    if (activeButton) {
-        activeButton.classList.add('active');
-    } else {
-        console.error(`Button for tab with ID ${tabId} not found.`);
-    }
-}
-
-
-
 // Function to add a dependency
 function addDependency() {
     const dependencyUrl = document.getElementById("dependencyUrl").value;

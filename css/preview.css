@@ -2,23 +2,19 @@
 
 .helper-container {
     display: flex;
-    width: 100%;
     height: calc(100vh - 120px);
-    position: relative;
 }
 
 .helper-workspace {
     flex: 1;
     min-width: 0;
     position: relative;
+    transition: height 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 
 .helper-code-preview {
     width: 400px;
-    border-left: 1px solid #ccc;
-    display: flex;
-    flex-direction: column;
-    
+    transition: width 0.3s ease;
 }
 
 .helper-code-header {
@@ -87,6 +83,30 @@
     width: 30px;
     justify-content: center;
 }
+
+/* Transição suave para alterações de tamanho */
+.helper-workspace,
+.helper-code-preview {
+    transition: width 0.3s ease;
+}
+
+#blocklyDiv,
+[id^="blocklyDivHelper"] {
+    height: calc(100vh - 120px) !important;
+    min-height: 300px !important;
+    width: 100% !important;
+    position: relative;
+    transition: height 0.3s ease-in-out;
+}
+
+@media (max-width: 768px) {
+    #blocklyDiv,
+    [id^="blocklyDivHelper"] {
+        height: calc(100vh - 80px) !important;
+        min-height: 200px !important;
+    }
+}
+
 
 #ideTab {
     padding: 0 !important;

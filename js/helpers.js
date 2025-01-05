@@ -7,62 +7,74 @@
 let helperCount = 0; // Contador de Helpers
 const blocklyHelpers = {}; // Armazena workspaces de helpers
 
+//workspace resize
 // Handler para tecla F11
-document.addEventListener('keydown', function(event) {
-    // Verifica se é a tecla F11 (código 122)
+document.removeEventListener('keydown', function(event) {
     if (event.keyCode === 122) {
-        event.preventDefault(); // Previne o comportamento padrão do F11
-        
-        // Redimensiona todos os workspaces
-        Object.values(blocklyHelpers).forEach(({ blockEditorId, workspace }) => {
-            resizeHelperWorkspace(blockEditorId, workspace);
-        });
-
-        // Redimensiona o workspace principal
-        const mainWorkspace = Blockly.getMainWorkspace();
-        if (mainWorkspace) {
-            const blocklyDiv = document.getElementById('blocklyDiv');
-            const tabContainer = document.querySelector('.tab-container');
-            const header = document.querySelector('.header');
-            const availableHeight = window.innerHeight - tabContainer.offsetHeight - header.offsetHeight;
-            
-            if (blocklyDiv) {
-                blocklyDiv.style.height = `${availableHeight}px`;
-            }
-            Blockly.svgResize(mainWorkspace);
-        }
-
-        // Força uma atualização após um breve delay
-        setTimeout(() => {
-            const activeTabId = Array.from(document.querySelectorAll('.tab-content'))
-                .find(tab => tab.classList.contains('active'))?.id;
-                
-            if (activeTabId) {
-                showTab(activeTabId);
-            }
-        }, 100);
+        event.preventDefault(); // Prevenção removida
     }
 });
 
-// Modifique a função resizeHelperWorkspace para ser mais robusta
+// Função para redimensionar workspaces com atraso
+function resizeAllWorkspaces() {
+    Object.values(blocklyHelpers).forEach(({ blockEditorId, workspace }) => {
+        resizeHelperWorkspace(blockEditorId, workspace);
+    });
+
+    const mainWorkspace = Blockly.getMainWorkspace();
+    if (mainWorkspace) {
+        Blockly.svgResize(mainWorkspace);
+    }
+}
+
+// Inicializa o helper e gerencia eventos
+function initializeHelpers() {
+    window.addEventListener('resize', () => setTimeout(resizeAllWorkspaces, 500));
+    document.addEventListener('fullscreenchange', () => setTimeout(resizeAllWorkspaces, 500));
+}
+
+/**
+ * Redimensiona o workspace do helper.
+ * @param {string} blockEditorId - ID do editor Blockly.
+ * @param {Blockly.Workspace} workspace - Workspace do Blockly.
+ */
+/**
+ * Redimensiona o workspace do helper com um atraso.
+ * @param {string} blockEditorId - ID do editor Blockly.
+ * @param {Blockly.Workspace} workspace - Workspace do Blockly.
+ */
+/**
+ * Redimensiona e força a renderização do workspace do helper.
+ * @param {string} blockEditorId - ID do editor Blockly.
+ * @param {Blockly.Workspace} workspace - Workspace do Blockly.
+ */
 function resizeHelperWorkspace(blockEditorId, workspace) {
+    if (!workspace) return;
+
     const blockEditor = document.getElementById(blockEditorId);
-    if (blockEditor && workspace) {
+    if (blockEditor) {
         const tabContainer = document.querySelector('.tab-container');
         const header = document.querySelector('.header');
-        const availableHeight = window.innerHeight - tabContainer.offsetHeight - header.offsetHeight - 20; // -20 para margem
-        
-        // Aplica altura mínima e máxima
-        const minHeight = 300; // altura mínima em pixels
-        const maxHeight = window.innerHeight - 100; // altura máxima
-        const finalHeight = Math.max(minHeight, Math.min(availableHeight, maxHeight));
-        
-        blockEditor.style.height = `${finalHeight}px`;
-        blockEditor.style.minHeight = `${minHeight}px`;
-        
-        // Força o workspace a se ajustar
-        workspace.render();
-        Blockly.svgResize(workspace);
+
+        // Garante que o editor esteja visível antes de redimensionar
+        blockEditor.style.display = 'block';
+
+        // Adiciona um atraso para garantir a atualização do layout
+        setTimeout(() => {
+            const availableHeight = window.innerHeight - tabContainer.offsetHeight - header.offsetHeight;
+
+            blockEditor.style.height = `${availableHeight}px`;
+
+            // Força o redimensionamento e a renderização
+            Blockly.svgResize(workspace);
+            workspace.render();
+
+            // Garante que o workspace seja visível após o redimensionamento
+            const parentSvg = workspace.getParentSvg();
+            if (parentSvg) {
+                parentSvg.style.visibility = 'visible';
+            }
+        }, 300); // Atraso ajustado para 100ms
     }
 }
 
@@ -212,6 +224,7 @@ function updateHelperCodePreview(helperId) {
 }
 
 // Função para criar o preview de código
+// Função para criar o preview de código
 function createCodePreview(helperId) {
     const preview = document.createElement('div');
     preview.className = 'helper-code-preview';
@@ -243,6 +256,9 @@ function createCodePreview(helperId) {
     preview.appendChild(header);
     preview.appendChild(content);
     
+    // Define o ID do helper para manter referência
+    preview.setAttribute('data-helper-id', helperId);
+
     return preview;
 }
 
@@ -251,18 +267,23 @@ function toggleCodePreview(previewElement) {
     const isCollapsed = previewElement.classList.toggle('collapsed');
     const toggleButton = previewElement.querySelector('.helper-code-toggle');
     toggleButton.innerHTML = isCollapsed ? '⟨' : '⟩';
-    
-    // Força o resize do workspace
-    const helperId = previewElement.getAttribute('data-helper-id');
-    if (helperId) {
-        const helperInfo = blocklyHelpers[helperId];
-        if (helperInfo) {
-            setTimeout(() => {
-                resizeHelperWorkspace(helperInfo.blockEditorId, helperInfo.workspace);
-            }, 300); // Aguarda a transição CSS terminar
-        }
+
+    // Ajusta a largura do container do workspace
+    const workspaceContainer = previewElement.closest('.helper-container').querySelector('.helper-workspace');
+    if (workspaceContainer) {
+        const previewWidth = isCollapsed ? 30 : 400; // Largura colapsada ou expandida do preview
+        workspaceContainer.style.width = `calc(100% - ${previewWidth}px)`;
     }
+
+    // Adiciona um atraso antes de redimensionar o workspace
+    setTimeout(() => {
+        const workspace = Blockly.getMainWorkspace();
+        if (workspace) {
+            Blockly.svgResize(workspace); // Força o redimensionamento do Blockly
+        }
+    }, 300); // Ajuste o tempo de atraso conforme necessário (300ms neste exemplo)
 }
+
 
 /**
  * Adiciona uma nova aba com um editor Blockly e carrega blocos iniciais.
@@ -406,20 +427,6 @@ window.addHelperTab = async function() {
     return workspace;
 };
 
-// Nova função para redimensionar workspaces de helpers
-function resizeHelperWorkspace(blockEditorId, workspace) {
-    if (!workspace) return;
-    const blockEditor = document.getElementById(blockEditorId);
-    if (blockEditor && workspace) {
-        const tabContainer = document.querySelector('.tab-container');
-        const header = document.querySelector('.header');
-        const availableHeight = window.innerHeight - tabContainer.offsetHeight - header.offsetHeight;
-        
-        blockEditor.style.height = `${availableHeight}px`;
-        Blockly.svgResize(workspace);
-    }
-}
-
 /**
  * Cria um botão com texto e função de clique.
  * @param {string} text - Texto do botão.
@@ -524,48 +531,19 @@ function loadBlocksForHelper(helperId) {
  * Exibe a aba selecionada.
  * @param {string} tabId - ID da aba.
  */
+/**
+ * Exibe a aba selecionada com atraso para redimensionar o workspace.
+ * @param {string} tabId - ID da aba.
+ */
 function showTab(tabId) {
     const tabs = document.querySelectorAll('.tab-content');
-    const buttons = document.querySelectorAll('.tab-button');
-
-    // Remove a classe 'active' de todas as abas e botões
     tabs.forEach(tab => tab.classList.remove('active'));
-    buttons.forEach(button => button.classList.remove('active'));
-
-    // Ativa a aba correspondente
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
         activeTab.classList.add('active');
-
-        // Redimensiona o workspace apropriado
-        if (tabId === 'ideTab') {
-            const mainWorkspace = Blockly.getMainWorkspace();
-            if (mainWorkspace) {
-                setTimeout(() => {
-                    Blockly.svgResize(mainWorkspace);
-                }, 10);
-            }
-        } else {
-            // Procura por um helper workspace correspondente
-            Object.entries(blocklyHelpers).forEach(([helperId, helperData]) => {
-                if (tabId === helperData.blockEditorId || tabId.includes(helperId)) {
-                    setTimeout(() => {
-                        resizeHelperWorkspace(helperData.blockEditorId, helperData.workspace);
-                    }, 10);
-                }
-            });
-        }
-    }
-
-    // Ativa o botão correspondente
-    const activeButton = Array.from(buttons).find(button => 
-        button.getAttribute("onclick") === `showTab('${tabId}')`
-    );
-    if (activeButton) {
-        activeButton.classList.add('active');
+        setTimeout(() => resizeAllWorkspaces(), 300);
     }
 }
-
 
 // Adiciona listener para redimensionamento da janela
 window.addEventListener('resize', () => {
