@@ -241,6 +241,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	const outputCode = document.getElementById('outputCode');
     const blocklyDiv = document.getElementById('blocklyDiv');
     
+    initializeHelpers();
+    
     const resizeBlocklyDiv = () => {
         const blocklyDiv = document.getElementById('blocklyDiv');
         const tabContainer = document.querySelector('.tab-container');

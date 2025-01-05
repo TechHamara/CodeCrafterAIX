@@ -29,8 +29,8 @@ function resizeAllWorkspaces() {
 
 // Inicializa o helper e gerencia eventos
 function initializeHelpers() {
-    window.addEventListener('resize', () => setTimeout(resizeAllWorkspaces, 500));
-    document.addEventListener('fullscreenchange', () => setTimeout(resizeAllWorkspaces, 500));
+    window.addEventListener('resize', () => setTimeout(resizeAllWorkspaces, 600));
+    document.addEventListener('fullscreenchange', () => setTimeout(resizeAllWorkspaces, 600));
 }
 
 /**
@@ -536,14 +536,32 @@ function loadBlocksForHelper(helperId) {
  * @param {string} tabId - ID da aba.
  */
 function showTab(tabId) {
-    const tabs = document.querySelectorAll('.tab-content');
+    const tabs = document.querySelectorAll('.tab-content'); // Todas as abas de conteúdo
+    const buttons = document.querySelectorAll('.tab-button'); // Todos os botões das abas
+
+    // Remove a classe 'active' de todas as abas de conteúdo e botões
     tabs.forEach(tab => tab.classList.remove('active'));
+    buttons.forEach(button => button.classList.remove('active'));
+
+    // Ativa a aba correspondente
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
-        activeTab.classList.add('active');
-        setTimeout(() => resizeAllWorkspaces(), 300);
+        activeTab.classList.add('active'); // Adiciona a classe 'active' à aba
+    } else {
+        console.error(`Tab with ID ${tabId} not found.`);
+    }
+
+    // Ativa o botão correspondente
+    const activeButton = Array.from(buttons).find(button =>
+        button.getAttribute("onclick") === `showTab('${tabId}')`
+    );
+    if (activeButton) {
+        activeButton.classList.add('active'); // Adiciona a classe 'active' ao botão
+    } else {
+        console.error(`Button for tab with ID ${tabId} not found.`);
     }
 }
+
 
 // Adiciona listener para redimensionamento da janela
 window.addEventListener('resize', () => {

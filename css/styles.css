@@ -371,16 +371,18 @@ input[type="file"] {
 }
 
 .tab-button {
-  padding: 10px 20px;
-  border: none;
-  background-color: #f1f1f1;
-  cursor: pointer;
-  outline: none;
+    background-color: #f0f0f0; /* Cor de fundo padrão */
+    border: 1px solid #ddd;
+    color: #333;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .tab-button.active {
-  background-color: #ddd;
-  border-bottom: 2px solid #007bff;
+    background-color: #007bff; /* Cor de fundo para aba ativa */
+    color: white; /* Cor do texto na aba ativa */
+    border-color: #007bff; /* Borda para a aba ativa */
 }
 
 .tab-content {
