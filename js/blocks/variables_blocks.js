@@ -22,7 +22,7 @@ Blockly.Blocks['create_variable'] = {
             ]), "VAR_TYPE");
         this.appendDummyInput()
             .appendField("initialize")
-            .appendField(new Blockly.FieldCheckbox("FALSE"), "INITIALIZE");
+            .appendField(new Blockly.FieldCheckbox("FALSE", this.toggleInitialize_.bind(this)), "INITIALIZE");
         this.appendValueInput("INITIAL_VALUE")
             .setCheck(null)
             .appendField("value")
@@ -33,22 +33,36 @@ Blockly.Blocks['create_variable'] = {
         this.setTooltip("Creates a new variable.");
     },
     onchange: function(event) {
-        const workspace = this.workspace;
+        if (!this.workspace) return;
+
         const varName = this.getFieldValue('VAR_NAME');
         const varType = this.getFieldValue('VAR_TYPE');
-        const shouldInitialize = this.getFieldValue('INITIALIZE') === 'TRUE';
 
-        // Sincronizar visibilidade do campo de valor inicial
+        if (event.type === Blockly.Events.BLOCK_CHANGE && event.blockId === this.id) {
+            const oldName = event.oldValue;
+            const newName = event.newValue;
+
+            // Remove a variável antiga se o nome foi alterado
+            if (oldName && oldName !== newName) {
+                const oldVariable = this.workspace.getVariable(oldName, varType);
+                if (oldVariable) {
+                    this.workspace.deleteVariableById(oldVariable.getId());
+                }
+            }
+
+            // Cria a nova variável, se não existir
+            if (!this.workspace.getVariable(varName, varType)) {
+                this.workspace.createVariable(varName, varType);
+            }
+
+            // Atualiza os dropdowns nos blocos get e set
+            this.workspace.refreshVariableDropdowns();
+        }
+    },
+    toggleInitialize_: function(newState) {
         const valueInput = this.getInput('INITIAL_VALUE');
         if (valueInput) {
-            valueInput.setVisible(shouldInitialize);
-        }
-
-        // Verifica se a variável já existe e atribui ID
-        if (event.type === Blockly.Events.BLOCK_CHANGE && event.blockId === this.id) {
-            if (!workspace.getVariable(varName, varType)) {
-                workspace.createVariable(varName, varType);
-            }
+            valueInput.setVisible(newState === 'TRUE');
         }
     },
     validateVariableName_: function(name) {
@@ -60,11 +74,42 @@ Blockly.Blocks['create_variable'] = {
         ];
 
         const isValid = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
-        return isValid && !reservedNames.includes(name) ? name : null;
+        return isValid && !reservedNames.includes(name) ? name : '';
     }
 };
 
-// Bloco para atribuir valor à variável
+Blockly.Blocks['get_variable'] = {
+    init: function() {
+        this.appendDummyInput()
+            .appendField("Get")
+            .appendField(new Blockly.FieldDropdown(this.updateDropdown_.bind(this)), "VAR_NAME");
+        this.setOutput(true, null);
+        this.setColour("#546E7A");
+        this.setTooltip("Gets the value of a variable.");
+    },
+    updateDropdown_: function() {
+        const variables = this.workspace?.getAllVariables() || [];
+        return variables.length
+            ? variables.map(variable => [variable.name, variable.name])
+            : [["No variables", ""]];
+    },
+    updateVariableDropdown: function() {
+        const dropdown = this.getField("VAR_NAME");
+        if (dropdown) {
+            const variables = this.workspace?.getAllVariables() || [];
+            const options = variables.map(variable => [variable.name, variable.name]);
+            const currentValue = dropdown.getValue();
+
+            dropdown.menuGenerator_ = options;
+
+            // Ajusta o valor selecionado se o atual não for mais válido
+            if (!variables.some(variable => variable.name === currentValue)) {
+                dropdown.setValue(variables.length > 0 ? variables[0].name : "No variables");
+            }
+        }
+    }
+};
+
 Blockly.Blocks['set_variable'] = {
     init: function() {
         this.appendDummyInput()
@@ -78,34 +123,30 @@ Blockly.Blocks['set_variable'] = {
         this.setTooltip("Sets a value to an existing variable.");
     },
     updateDropdown_: function() {
-        const workspace = this.workspace;
-        if (!workspace) return [["No variables", ""]];
-        const variables = workspace.getAllVariables();
+        const variables = this.workspace?.getAllVariables() || [];
         return variables.length
             ? variables.map(variable => [variable.name, variable.name])
             : [["No variables", ""]];
+    },
+    updateVariableDropdown: function() {
+        const dropdown = this.getField("VAR_NAME");
+        if (dropdown) {
+            const variables = this.workspace?.getAllVariables() || [];
+            const options = variables.map(variable => [variable.name, variable.name]);
+            const currentValue = dropdown.getValue();
+
+            dropdown.menuGenerator_ = options;
+
+            // Ajusta o valor selecionado se o atual não for mais válido
+            if (!variables.some(variable => variable.name === currentValue)) {
+                dropdown.setValue(variables.length > 0 ? variables[0].name : "No variables");
+            }
+        }
     }
 };
 
-// Bloco para obter valor de uma variável
-Blockly.Blocks['get_variable'] = {
-    init: function() {
-        this.appendDummyInput()
-            .appendField("Get")
-            .appendField(new Blockly.FieldDropdown(this.updateDropdown_.bind(this)), "VAR_NAME");
-        this.setOutput(true, null);
-        this.setColour("#546E7A");
-        this.setTooltip("Gets the value of a variable.");
-    },
-    updateDropdown_: function() {
-        const workspace = this.workspace;
-        if (!workspace) return [["No variables", ""]];
-        const variables = workspace.getAllVariables();
-        return variables.length
-            ? variables.map(variable => [variable.name, variable.name])
-            : [["No variables", ""]];
-    }
-};
+
+
 
 // Geradores de código
 Blockly.JavaScript['create_variable'] = function(block) {

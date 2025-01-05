@@ -166,6 +166,7 @@ def compile_extension():
         fast_yml = data.get("fastYml", "")
         dependencies = data.get("dependencies", [])
         helpers = data.get("helpers", {})
+        proguard_rules = data.get("proguardRules", "")
 
         if not main_code:
             return jsonify({"error": "No main code provided"}), 400
@@ -182,6 +183,9 @@ def compile_extension():
         # Save the AndroidManifest.xml
         with open(os.path.join(project_dir, "src", "AndroidManifest.xml"), "w") as f:
             f.write(android_manifest)
+            
+        with open(os.path.join(project_dir, "src", "proguard-rules.pro"), "w") as f:
+            f.write(proguard_rules)
 
         # Save the fast.yml configuration
         with open(os.path.join(project_dir, "fast.yml"), "w") as f:

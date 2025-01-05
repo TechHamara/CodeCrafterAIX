@@ -11,23 +11,41 @@ let dependencies = []; // Array to store dependency URLs
 let helpersData = {};
 let manifestEditor;
 let ymlEditor;
+let proguardEditor;
+
+
+function syncVariablesWithWorkspace(workspace) {
+    const allBlocks = workspace.getAllBlocks();
+    const existingVariables = workspace.getAllVariables().map(variable => variable.name);
+
+    // Adiciona variáveis que aparecem nos blocos mas não estão no workspace
+    allBlocks.forEach(block => {
+        const varNameField = block.getField('VAR_NAME');
+        if (varNameField) {
+            const varName = varNameField.getValue();
+            const varType = "String"; // Supondo tipo padrão como String. Ajuste conforme necessário.
+            if (varName && !existingVariables.includes(varName)) {
+                workspace.createVariable(varName, varType);
+            }
+        }
+    });
+
+    // Atualiza os dropdowns de variáveis
+    workspace.refreshVariableDropdowns();
+}
 
 // Sistema de notificações
+// Notificação ao usuário sobre limites de armazenamento
 function showNotification(message, type) {
-    let oldNotification = document.querySelector('.notification');
-    if (oldNotification) {
-        oldNotification.remove();
-    }
-    
-    let notification = document.createElement('div');
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) existingNotification.remove();
+
+    const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
+    setTimeout(() => notification.remove(), 3000);
 }
 
 function initializeIdePreview() {
@@ -156,10 +174,16 @@ window.loadBlocks = async function() {
             if (!saveData.version) throw new Error('Formato de arquivo inválido');
 
             if (saveData.mainBlocks) {
-                const mainXmlDom = Blockly.utils.xml.textToDom(saveData.mainBlocks);
-                workspace.clear();
-                Blockly.Xml.domToWorkspace(mainXmlDom, workspace);
-            }
+				const mainXmlDom = Blockly.utils.xml.textToDom(saveData.mainBlocks);
+				workspace.clear();
+				Blockly.Xml.domToWorkspace(mainXmlDom, workspace);
+
+				// Sincroniza as variáveis com os blocos carregados
+				syncVariablesWithWorkspace(workspace);
+			}
+
+            
+            workspace.refreshVariableDropdowns()
 
             Object.keys(blocklyHelpers).forEach(helperId => deleteHelper(helperId));
             helperCount = saveData.helperCount || 0;
@@ -202,6 +226,15 @@ window.loadBlocks = async function() {
     input.click();
 };
 
+// Adiciona uma função no workspace para atualizar os dropdowns
+Blockly.Workspace.prototype.refreshVariableDropdowns = function() {
+    const allBlocks = this.getAllBlocks();
+    allBlocks.forEach(block => {
+        if (typeof block.updateVariableDropdown === 'function') {
+            block.updateVariableDropdown();
+        }
+    });
+};
 
 document.addEventListener('DOMContentLoaded', function() {
 	const themeSelect = document.getElementById("themeSelect");
@@ -260,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             wheel: true
         }
     });
+    
 
     // Força o resize inicial
     resizeBlocklyDiv();
@@ -344,6 +378,9 @@ document.addEventListener('DOMContentLoaded', function() {
         monaco.editor.setTheme(monacoTheme);
     }
     if (window.ymlEditor) {
+        monaco.editor.setTheme(monacoTheme);
+    }
+    if (window.proguardEditor) {
         monaco.editor.setTheme(monacoTheme);
     }
 
@@ -473,10 +510,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Carregar blocos principais
                 if (saveData.mainBlocks) {
-                    const mainXmlDom = Blockly.utils.xml.textToDom(saveData.mainBlocks);
-                    workspace.clear();
-                    Blockly.Xml.domToWorkspace(mainXmlDom, workspace);
-                }
+					const mainXmlDom = Blockly.utils.xml.textToDom(saveData.mainBlocks);
+					workspace.clear();
+					Blockly.Xml.domToWorkspace(mainXmlDom, workspace);
+
+					// Sincroniza as variáveis com os blocos carregados
+					syncVariablesWithWorkspace(workspace);
+				}
+
 
                 // Remove todas as abas helpers existentes
                 Object.keys(blocklyHelpers).forEach(helperId => {
@@ -539,7 +580,15 @@ document.addEventListener('DOMContentLoaded', function() {
             //initializeIdePreview();
         }
     });
-
+	
+	workspace.addChangeListener(event => {
+		if (event.type === Blockly.Events.VAR_CREATE || 
+		    event.type === Blockly.Events.VAR_DELETE || 
+		    event.type === Blockly.Events.VAR_RENAME) {
+		    workspace.refreshVariableDropdowns();
+		    syncVariablesWithWorkspace(workspace);
+		}
+	});
 
     Blockly.getMainWorkspace().addChangeListener(event => {
         if (event.type === Blockly.Events.VAR_RENAME || 
@@ -549,6 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
             Blockly.getMainWorkspace().getAllBlocks().forEach(block => {
                 if (typeof block.updateVariableDropdown === 'function') {
                     block.updateVariableDropdown();
+                    syncVariablesWithWorkspace(workspace);
                 }
             });
         }
@@ -627,6 +677,7 @@ async function compileExtension() {
         const code = outputElement.textContent || outputElement.innerText;
         const manifestContent = manifestEditor.getValue();
         const fastYmlContent = ymlEditor.getValue();;
+        const proguardContent = proguardEditor.getValue();
 
         if (!code) {
             showNotification("No code generated. Please generate code first.", "error");
@@ -687,7 +738,8 @@ async function compileExtension() {
                 androidManifest: updatedManifestContent,
                 fastYml: fastYmlContent,
                 dependencies,
-                helpers
+                helpers,
+                proguardRules: proguardContent,
             }),
         });
 
@@ -903,7 +955,7 @@ function resetHighlightedBlocks() {
     const defaultCode = `
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.mypackage.testextension.testextension">
+  package="com.mypackage.myextension">
 
   <application>
     <!-- You can use any manifest tag that goes inside the <application> tag -->
@@ -917,7 +969,77 @@ function resetHighlightedBlocks() {
 </manifest>
     `;
 
-    // Load Monaco Editor for Manifest XML
+// Default YML Code
+const defaultYamlCode = `
+# The name of the extension developer
+author: You Name Here
+
+# Define the minimum Android SDK level your extension supports.
+min_sdk: 7
+# If enabled, extension will be optimized using ProGuard.
+proguard: true
+# If enabled, extension will be optimized using R8.
+R8: true
+# If enabled, Kotlin Standard Libraries will be included with the extension.
+kotlin: false
+# Kotlin Compiler version.
+kotlin_version: 1.9.24
+
+# If enabled, you will be able to use Java 8 language features in your extension source code.
+desugar_sources: false
+# Enable it, if any of your dependencies use Java 8 language features.
+desugar_deps: false
+# If enabled, the D8 tool will generate desugared jar (classes.dex)
+desugar_dex: true
+
+# Default repositories are Maven Central, Google Maven, JCenter and JitPack.
+# If the library you want to use is not available in these repositories, add here by specifying their URLs.
+# repositories:
+# - https://repo.spring.io/plugins-release/
+
+# Extension dependencies [JAR & AAR Should be present into deps directory]
+# dependencies:
+# - mylibrary.jar
+# - androidx.viewpager2:viewpager2:1.0.0
+
+# Define compile-time dependencies only [Remote only]
+# compile_time:
+# - androidx.browser:browser:1.0.0
+
+# Define dependencies those are should be skipped during resolving. [Remote only]
+# excludes:
+# - androidx.tracing:tracing:1.0.0
+
+# Extension assets. [Should be present into assets directory]
+# assets:
+# - my-awesome-asset.anything
+
+# Enable to incrementing the version number of each component during build.
+auto_version: false
+# Enable to remove @annotations from the extension.
+deannonate: true
+# Enable to skip matching classes provided by AI2.
+filter_mit_classes: false
+    `;
+
+const defaultProguard = `
+# Repackages optimized classes into com.mypackage.myextension.repacked package in resulting
+# AIX. Repackaging is necessary to avoid clashes with the other extensions that
+# might be using same libraries as you.
+-repackageclasses com.mypackage.myextension.repacked
+`;
+
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
+require(['vs/editor/editor.main'], function () {
+    window.ymlEditor = monaco.editor.create(document.getElementById('editor-proguard'), {
+        value: defaultProguard.trim(),
+        language: 'yaml',
+        theme: 'vs',        
+		automaticLayout: true,
+    });
+});
+
+// Load Monaco Editor for Manifest XML
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
 require(['vs/editor/editor.main'], function () {
     window.manifestEditor = monaco.editor.create(document.getElementById('editor'), {
@@ -928,56 +1050,8 @@ require(['vs/editor/editor.main'], function () {
     });
 });
 
-    // Default YML Code
-    const defaultYamlCode = `
-# The name of the extension developer
-author: BosonsHiggs
 
-# If enabled, the version number of every component will be increased automatically.
-auto_version: true
-
-# The minimum Android SDK level your extension supports. Minimum SDK defined in
-# AndroidManifest.xml or @DesignerComponent are ignored, you should always define it here.
-min_sdk: 7
-
-# If enabled, Kotlin Standard Libraries (V1.9.24) will be included with the extension.
-# If you want to add specific Kotlin Standard Libraries so disable it.
-kotlin: false
-
-# If enabled, you will be able to use Java 8 language features in your extension source code.
-# When you use .kt classes, by default Fast will desugar sources.
-desugar_sources: false
-
-# Enable it, if any of your dependencies use Java 8 language features.
-# If kotlin is enabled, by default Fast will desugar dependencies.
-desugar_deps: false
-
-# If enabled, the D8 tool will generate desugared (classes.jar) classes.dex
-desugar_dex: true
-
-# If enabled, @annotations will be not present in built extension.
-deannonate: true
-
-# If enabled, matching classes provided by MIT will not be included in the built extension.
-filter_mit_classes: false
-
-# If enabled, it will optimizes the extension with ProGuard.
-proguard: true
-
-# If enabled, R8 will be used instead of ProGuard and D8 dexer.
-# NOTE: It's an experimental feature.
-R8: false
-
-# Extension dependencies (JAR) [Should be present into deps directory]
-# dependencies:
-# - mylibrary.jar
-
-# Extension assets. [Should be present into assets directory]
-# assets:
-# - my-awesome-asset.anything
-    `;
-
-    // Load Monaco Editor for YML
+// Load Monaco Editor for YML
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
 require(['vs/editor/editor.main'], function () {
     window.ymlEditor = monaco.editor.create(document.getElementById('editor-yml'), {

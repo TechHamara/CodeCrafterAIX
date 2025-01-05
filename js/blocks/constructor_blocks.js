@@ -7,20 +7,25 @@ Blockly.Blocks['extension_class'] = {
         .appendField(new Blockly.FieldLabelSerializable("Create Extension"), "className")
         .appendField(new Blockly.FieldTextInput("MyExtension"), "classNameEdit");
     this.appendDummyInput()
+        .appendField(new Blockly.FieldLabelSerializable("Version"), "versionLabel")
+        .appendField(new Blockly.FieldNumber(1, 1), "versionEdit");
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabelSerializable("Version Name"), "versionName")
+        .appendField(new Blockly.FieldTextInput("1.0"), "versionNameEdit");
+    this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable("Description"), "descriptionName")
-        .appendField(new Blockly.FieldTextInput("A custom extension"), "descriptionNameEdit");
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable("Category"), "categoryName")
-        .appendField(new Blockly.FieldTextInput("EXTENSION"), "extensionNameEdit");
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable("Non-visible"), "NAME")
-        .appendField(new Blockly.FieldCheckbox("TRUE"), "checkBoxNonVisible");
+        .appendField(new Blockly.FieldTextInput("Developed by You Name Here using Fast."), "descriptionNameEdit");
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable("Icon Name"), "NAME")
-        .appendField(new Blockly.FieldTextInput("image/icon.png"), "imageURL");
+        .appendField(new Blockly.FieldTextInput("icon.png"), "imageURL");
     this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable("Interfaces"), "interfacesLabel")
-        .appendField(new Blockly.FieldTextInput(""), "interfaces");
+        .appendField(new Blockly.FieldLabelSerializable("Class Type:"), "inheritanceLabel");
+    this.appendDummyInput()
+        .appendField("extends")
+        .appendField(new Blockly.FieldTextInput("AndroidNonvisibleComponent"), "extendsClass");
+    this.appendDummyInput()
+        .appendField("implements")
+        .appendField(new Blockly.FieldTextInput(""), "implementsInterfaces");
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable("ANNOTATIONS"), "annotationsText");
     this.appendStatementInput("annotationBlocks")
@@ -190,23 +195,33 @@ ${afterSuper}`;
 
 //Generators
 Blockly.JavaScript['extension_class'] = function(block) {
-  let interfaces = block.getFieldValue('interfaces');
   let className = block.getFieldValue('classNameEdit');
+  let version = block.getFieldValue('versionEdit');
+  let versionName = block.getFieldValue('versionNameEdit');
   let description = block.getFieldValue('descriptionNameEdit');
-  let category = block.getFieldValue('extensionNameEdit');
-  let nonVisible = block.getFieldValue('checkBoxNonVisible') === 'TRUE';
   let iconName = block.getFieldValue('imageURL');
+  let extendsClass = block.getFieldValue('extendsClass').trim();
+  let implementsInterfaces = block.getFieldValue('implementsInterfaces').trim();
   let annotations = Blockly.JavaScript.statementToCode(block, 'annotationBlocks');
   let members = Blockly.JavaScript.statementToCode(block, 'statementBlocks');
-
-  let code = `@DesignerComponent(version = 1,
+  
+  // Construindo a herança da classe
+  let inheritance = '';
+  if (extendsClass) {
+    inheritance += `extends ${extendsClass}`;
+  }
+  if (implementsInterfaces) {
+    inheritance += inheritance ? ` implements ${implementsInterfaces}` : `implements ${implementsInterfaces}`;
+  }
+  
+  let code = `@DesignerComponent(
+    version = ${version},
+    versionName = "${versionName}",
     description = "${description}",
-    category = ComponentCategory.${category},
-    nonVisible = ${nonVisible},
-    iconName = "${iconName}")
-${annotations}public class ${className} extends AndroidNonvisibleComponent${interfaces ? ' implements ' + interfaces : ''} {
+    iconName = "${iconName}"
+)
+${annotations}public class ${className} ${inheritance} {
 ${members}}`;
-
   return code;
 };
 

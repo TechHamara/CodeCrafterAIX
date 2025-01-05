@@ -82,6 +82,7 @@
         AndroidManifest.xml
       </button>
       <button class="tab-button" onclick="showTab('fastTab')">fast.yml</button>
+      <button class="tab-button" onclick="showTab('proguardTab')">proguard-rules.pro</button>
       <button class="tab-button" onclick="showTab('dependenciesTab')">
         Dependencies
       </button>
@@ -99,6 +100,10 @@
     <div id="fastTab" class="tab-content">
         <div id="editor-yml" style="height: 100%;"></div>
     </div>
+    
+    <div id="proguardTab" class="tab-content">
+	  <div id="editor-proguard" style="height: 100%;"></div>
+	</div>
 
     <!-- Dependencies Tab -->
   <div id="dependenciesTab" class="tab-content">
